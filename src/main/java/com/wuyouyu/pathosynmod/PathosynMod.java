@@ -1,10 +1,10 @@
 package com.wuyouyu.pathosynmod;
 
-import com.wuyouyu.pathosynmod.event.HealingStaffEvents;
+
+
 
 import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
 
-import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -32,15 +32,17 @@ public class PathosynMod {
         // 注册物品与创造标签
         ModItems.ITEMS.register(modEventBus);
         ModTabs.TABS.register(modEventBus);
-        NeoForge.EVENT_BUS.register(HealingStaffEvents.class);
+
+        ModComponentTypes.register(modEventBus);
 
 
 
         // 监听 setup 阶段（如需要）
         modEventBus.addListener(this::commonSetup);
 
+
         // 监听事件
-        NeoForge.EVENT_BUS.register(HealingStaffEvents.class);
+
         LOGGER.info("Pathosyn mod loaded.");
     }
 
