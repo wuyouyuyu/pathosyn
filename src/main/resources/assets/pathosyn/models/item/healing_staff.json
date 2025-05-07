@@ -1,6 +1,7 @@
 {
-  "parent": "minecraft:item/handheld",
-  "textures": {
-    "layer0": "pathosyn:item/healing_staff"
-  }
+	"credit": "Made with Blockbench",
+	"parent": "minecraft:item/handheld",
+	"textures": {
+		"layer0": "pathosyn:item/healing_staff"
+	}
 }
