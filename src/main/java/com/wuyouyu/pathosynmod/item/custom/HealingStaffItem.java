@@ -59,7 +59,7 @@ public class HealingStaffItem extends Item {
 
             LivingEntity target = switch (mode) {
                 case 0 -> player;
-                case 1 -> getLookedAtEntity(player, 5.0);
+                case 1 -> getLookedAtEntity(player);
                 default -> null;
             };
 
@@ -120,7 +120,7 @@ public class HealingStaffItem extends Item {
         initializeRandomCharges(stack, level);
     }
     @Override
-    public void appendHoverText(@NotNull ItemStack stack, @NotNull TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(@NotNull ItemStack stack, @NotNull TooltipContext context, List<Component> tooltip, @NotNull TooltipFlag flag) {
         int charges = ChargeCountComponent.get(stack);
 
         tooltip.add(Component.translatable("tooltip.pathosyn.charges", charges).withStyle(ChatFormatting.GRAY));
@@ -153,15 +153,15 @@ public class HealingStaffItem extends Item {
         return charges <= 0;
     }
 
-    private LivingEntity getLookedAtEntity(Player player, double range) {
+    private LivingEntity getLookedAtEntity(Player player) {
         Vec3 eyePos = player.getEyePosition();
         Vec3 viewVec = player.getViewVector(1.0F);
-        Vec3 reachVec = eyePos.add(viewVec.scale(range));
-        AABB box = player.getBoundingBox().expandTowards(viewVec.scale(range)).inflate(1.0);
+        Vec3 reachVec = eyePos.add(viewVec.scale(5.0));
+        AABB box = player.getBoundingBox().expandTowards(viewVec.scale(5.0)).inflate(1.0);
 
         List<Entity> entities = player.level().getEntities(player, box, e -> e instanceof LivingEntity && e != player && e.isPickable());
         Entity closest = null;
-        double closestDist = range * range;
+        double closestDist = 5.0 * 5.0;
 
         for (Entity entity : entities) {
             AABB entityBox = entity.getBoundingBox().inflate(0.3);
