@@ -8,14 +8,20 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 
+
 @EventBusSubscriber(modid = PathosynMod.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class PathosynDataGenerator {
+
     @SubscribeEvent
     public static void gatherData(GatherDataEvent event) {
         DataGenerator generator = event.getGenerator();
         PackOutput output = generator.getPackOutput();
 
-        generator.addProvider(event.includeClient(), new PathosynLanguageProvider(output));
-        generator.addProvider(event.includeClient(), new PathosynItemModelProvider(output, event.getExistingFileHelper()));
+        if (event.includeClient()) {
+
+
+
+            generator.addProvider(true, new PathosynItemModelProvider(output, event.getExistingFileHelper()));
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.wuyouyu.pathosynmod.registry;
 
 import com.wuyouyu.pathosynmod.PathosynMod;
+import com.wuyouyu.pathosynmod.item.custom.ChargeCountComponent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -20,7 +21,9 @@ public class ModTabs {
                     .withTabsBefore(CreativeModeTabs.COMBAT)
                     .icon(() -> new ItemStack(ModItems.HEALING_STAFF.get()))
                     .displayItems((parameters, output) -> {
-                        output.accept(ModItems.HEALING_STAFF.get());
+                        ItemStack staff = new ItemStack(ModItems.HEALING_STAFF.get());
+                        ChargeCountComponent.reset(staff);
+                        output.accept(staff);
                     })
                     .build());
 }

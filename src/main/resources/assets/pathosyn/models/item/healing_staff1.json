@@ -1,0 +1,6 @@
+{
+  "parent": "item/handheld",
+  "textures": {
+    "layer0": "pathosyn:item/healing_staff1"
+  }
+}

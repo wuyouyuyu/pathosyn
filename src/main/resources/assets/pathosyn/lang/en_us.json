@@ -1,4 +1,15 @@
 {
   "item.pathosyn.healing_staff": "Healing Staff",
-  "itemGroup.pathosyn.main": "Pathosyn"
+  "itemGroup.pathosyn.main": "pathosyn",
+  "message.pathosyn.exhausted": "The staff is out of charges.",
+  "message.pathosyn.no_target": "No valid target found.",
+  "message.pathosyn.healed": "Healed %s.",
+  "message.pathosyn.already_full": "Target is already at full health.",
+  "item.pathosyn.healing_staff.self": "Healing Staff▼",
+  "item.pathosyn.healing_staff.other": "Healing Staff▲",
+  "message.pathosyn.switched_mode": "Switched to mode %s.",
+  "tooltip.pathosyn.charges": "Charges: %s",
+  "tooltip.pathosyn.healing_staff.description.1": "§aUse to heal yourself or others.",
+  "tooltip.pathosyn.healing_staff.description.2": "§aHeal amount scales with max HP.",
+  "tooltip.pathosyn.healing_staff.switch_mode": "§8[%1$s + %2$s] to switch mode"
 }

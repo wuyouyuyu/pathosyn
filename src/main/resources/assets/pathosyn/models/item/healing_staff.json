@@ -1,7 +1,14 @@
 {
-	"credit": "Made with Blockbench",
-	"parent": "minecraft:item/handheld",
+	"parent": "item/handheld",
 	"textures": {
 		"layer0": "pathosyn:item/healing_staff"
-	}
+	},
+	"overrides": [
+		{
+			"predicate": {
+				"custom_model_data": 1
+			},
+			"model": "pathosyn:item/healing_staff1"
+		}
+	]
 }

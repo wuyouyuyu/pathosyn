@@ -27,3 +27,4 @@ repo
 
 # datagen
 /src/generated/
+.env
