@@ -3,30 +3,33 @@ package com.wuyouyu.pathosynmod.item.custom;
 
 import com.wuyouyu.pathosynmod.component.StaffModeComponent;
 
+import com.wuyouyu.pathosynmod.entity.effect.HealingBeamEntity;
 import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
-import com.wuyouyu.pathosynmod.registry.ModParticles;
+import com.wuyouyu.pathosynmod.registry.ModEntities;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.particles.ParticleTypes;
+
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
+
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
+
 import net.minecraft.world.entity.player.Player;
 
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+
 import net.minecraft.world.item.TooltipFlag;
+
 import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.ServerLevelAccessor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -44,96 +47,73 @@ public class HealingStaffItem extends Item {
     public @NotNull InteractionResultHolder<ItemStack> use(Level level, Player player, @NotNull InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        // —— 服务端：模式切换、命中检测、治疗 & 粒子广播 ——
         if (!level.isClientSide) {
-            // 1. 潜行 + 右键切换模式
             if (player.isShiftKeyDown()) {
                 int mode = stack.getOrDefault(StaffModeComponent.getModeComponent(), 0);
                 int next = (mode + 1) % 2;
                 stack.set(StaffModeComponent.getModeComponent(), next);
+                player.displayClientMessage(Component.translatable("message.pathosyn.switched_mode", next), true);
                 return InteractionResultHolder.sidedSuccess(stack, false);
             }
 
-            int mode = stack.getOrDefault(StaffModeComponent.getModeComponent(), 0);
-
-            // 2. 耗尽检测
-            if (isExhausted(stack)) {
-                player.displayClientMessage(Component.translatable("message.pathosyn.exhausted"), true);
-                return InteractionResultHolder.fail(stack);
-            }
-
-            // 3. 选定目标
-            LivingEntity target = switch (mode) {
-                case 0 -> player;
-                case 1 -> getLookedAtEntity(player);
-                default -> null;
-            };
-            if (target == null || (mode == 1 && target == player)) {
-                player.displayClientMessage(Component.translatable("message.pathosyn.no_target"), true);
-                level.playSound(null, player.blockPosition(),
-                        SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1f, 1f);
-                return InteractionResultHolder.fail(stack);
-            }
-
-            // 4. 满血检测
-            if (target.getHealth() >= target.getMaxHealth()) {
-                player.displayClientMessage(Component.translatable("message.pathosyn.already_full"), true);
-                level.playSound(null, player.blockPosition(),
-                        SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1f, 1f);
-                return InteractionResultHolder.fail(stack);
-            }
-
-            // 5. 执行治疗 & 扣除充能
-            float healAmount = target.getMaxHealth() * 0.1f + 6f;
-            target.heal(healAmount);
-
             int currentCharges = stack.getOrDefault(ModComponentTypes.getChargeCountComponent(), MAX_CHARGES);
+            if (currentCharges <= 0) {
+                player.displayClientMessage(Component.translatable("message.pathosyn.exhausted"), true);
+                return InteractionResultHolder.fail(stack); //  不触发冷却
+            }
+
+// ✅ 只有在可使用时才设置冷却
+            player.getCooldowns().addCooldown(this, 20);
+
+            int mode = stack.getOrDefault(StaffModeComponent.getModeComponent(), 0);
+            if (mode == 0) {
+                // 模式 0：立即治疗自己
+                float healAmount = player.getMaxHealth() * 0.1f + 6f;
+                player.heal(healAmount);
+                stack.set(ModComponentTypes.getChargeCountComponent(), currentCharges - 1);
+
+                if (level instanceof ServerLevelAccessor serverLevel) {
+                    serverLevel.getLevel().sendParticles(
+                            net.minecraft.core.particles.ParticleTypes.HEART,
+                            player.getX(), player.getY() + player.getBbHeight() / 2, player.getZ(),
+                            5, 0.2, 0.3, 0.2, 0.01);
+                }
+
+                level.playSound(null, player.blockPosition(),
+                        SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.0f);
+
+                player.displayClientMessage(
+                        Component.translatable("message.pathosyn.healed", player.getName().getString()), true);
+                return InteractionResultHolder.sidedSuccess(stack, false);
+            }
+
+            // 模式 1：发射粒子束实体
             stack.set(ModComponentTypes.getChargeCountComponent(), currentCharges - 1);
 
-            // 6. 音效、提示与冷却
-            level.playSound(null, player.blockPosition(),
-                    SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1f, 1f);
-            player.displayClientMessage(
-                    Component.translatable("message.pathosyn.healed", target.getName().getString()), true);
-            player.getCooldowns().addCooldown(this, 4);
-
-            // 7. 全体可见：沿玩家眼睛到目标位置广播粒子
-            ServerLevel serverLevel = (ServerLevel) level;
-            Vec3 start = player.getEyePosition();
-            Vec3 end   = target.getEyePosition();                        // 取目标眼睛高度
-            Vec3 delta = end.subtract(start);
-            Vec3 step  = delta.normalize().scale(0.5);                   // 每隔 0.5 格
-            int count  = (int) (delta.length() / 0.5);
-
-            for (int i = 0; i <= count; i++) {
-                Vec3 pos = start.add(step.scale(i));
-                serverLevel.sendParticles(
-                        ParticleTypes.ENCHANT,
-                    //    ModParticles.HEAL_BEAM.get(), // 自定义粒子类型
-                        pos.x, pos.y, pos.z,
-                        1,        // 每次发送 1 个粒子
-                        0.0D, 0.0D, 0.0D, // xOffset, yOffset, zOffset
-                        0.0D     // speed
-                );
-            }
+            HealingBeamEntity beam = new HealingBeamEntity(ModEntities.HEALING_BEAM.get(), level);
+            beam.setOwner(player);
+            beam.setDirection(player.getLookAngle());
+            beam.setSourceStack(stack);
+            beam.setPos(player.getX(), player.getEyeY(), player.getZ());
+            level.addFreshEntity(beam);
 
             return InteractionResultHolder.sidedSuccess(stack, false);
         }
 
-
         return InteractionResultHolder.sidedSuccess(stack, true);
     }
 
-    // 显示条
     @Override
     public boolean isBarVisible(@NotNull ItemStack stack) {
         return true;
     }
+
     @Override
     public int getBarWidth(@NotNull ItemStack stack) {
-        int value = ChargeCountComponent.get(stack);
-        return Math.round(13.0F * value / ChargeCountComponent.MAX_CHARGES);
+        int value = stack.getOrDefault(ModComponentTypes.getChargeCountComponent(), MAX_CHARGES);
+        return Math.round(13.0F * value / MAX_CHARGES);
     }
+
     @Override
     public int getBarColor(@NotNull ItemStack stack) {
         return 0x00FF00;
@@ -146,27 +126,29 @@ public class HealingStaffItem extends Item {
             stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(mode == 1 ? 1 : 0));
         }
     }
-//  随机耐久
+
     @Override
     public void onCraftedBy(@NotNull ItemStack stack, @NotNull Level level, @NotNull Player player) {
         super.onCraftedBy(stack, level, player);
         initializeRandomCharges(stack, level);
     }
+
     @Override
     public void appendHoverText(@NotNull ItemStack stack, @NotNull TooltipContext context, List<Component> tooltip, @NotNull TooltipFlag flag) {
-        int charges = ChargeCountComponent.get(stack);
+        int charges = stack.getOrDefault(ModComponentTypes.getChargeCountComponent(), MAX_CHARGES);
 
         tooltip.add(Component.translatable("tooltip.pathosyn.charges", charges).withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("")); // 空行
+        tooltip.add(Component.literal(""));
 
-        tooltip.add(Component.translatable("tooltip.pathosyn.healing_staff.description.1").withStyle(ChatFormatting.DARK_GREEN));
-        tooltip.add(Component.translatable("tooltip.pathosyn.healing_staff.description.2").withStyle(ChatFormatting.DARK_GREEN));
-        tooltip.add(Component.literal("")); // 空行
+        tooltip.add(Component.translatable("tooltip.pathosyn.healing_staff.description.1"));
+        tooltip.add(Component.translatable("tooltip.pathosyn.healing_staff.description.2"));
+        tooltip.add(Component.literal(""));
 
         String shiftKey = Minecraft.getInstance().options.keyShift.getTranslatedKeyMessage().getString();
         String useKey = Minecraft.getInstance().options.keyUse.getTranslatedKeyMessage().getString();
-        tooltip.add(Component.translatable("tooltip.pathosyn.healing_staff.switch_mode", shiftKey, useKey).withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("tooltip.pathosyn.healing_staff.switch_mode", shiftKey, useKey));
     }
+
     @Override
     public @NotNull Component getName(ItemStack stack) {
         if (!stack.has(StaffModeComponent.getModeComponent())) {
@@ -181,39 +163,10 @@ public class HealingStaffItem extends Item {
         };
     }
 
-    private boolean isExhausted(ItemStack stack) {
-        int charges = stack.getOrDefault(ModComponentTypes.getChargeCountComponent(), MAX_CHARGES);
-        return charges <= 0;
-    }
-
-    private LivingEntity getLookedAtEntity(Player player) {
-        Vec3 eyePos = player.getEyePosition();
-        Vec3 viewVec = player.getViewVector(1.0F);
-        Vec3 reachVec = eyePos.add(viewVec.scale(5.0));
-        AABB box = player.getBoundingBox().expandTowards(viewVec.scale(5.0)).inflate(1.0);
-
-        List<Entity> entities = player.level().getEntities(player, box, e -> e instanceof LivingEntity && e != player && e.isPickable());
-        Entity closest = null;
-        double closestDist = 5.0 * 5.0;
-
-        for (Entity entity : entities) {
-            AABB entityBox = entity.getBoundingBox().inflate(0.3);
-            var optional = entityBox.clip(eyePos, reachVec);
-            if (optional.isPresent()) {
-                double distance = eyePos.distanceToSqr(optional.get());
-                if (distance < closestDist) {
-                    closest = entity;
-                    closestDist = distance;
-                }
-            }
-        }
-
-        return (LivingEntity) closest;
-    }
     private void initializeRandomCharges(ItemStack stack, Level level) {
         if (!stack.has(ModComponentTypes.getChargeCountComponent())) {
-            int value = 3 + level.random.nextInt(ChargeCountComponent.MAX_CHARGES - 2); // 3~10
-            ChargeCountComponent.set(stack, value);
+            int value = 3 + level.random.nextInt(MAX_CHARGES - 2);
+            stack.set(ModComponentTypes.getChargeCountComponent(), value);
         }
     }
 }

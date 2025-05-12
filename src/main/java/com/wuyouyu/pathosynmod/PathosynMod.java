@@ -3,9 +3,10 @@ package com.wuyouyu.pathosynmod;
 
 
 
-import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
+import com.wuyouyu.pathosynmod.client.PathosynClient;
+import com.wuyouyu.pathosynmod.registry.*;
 
-import com.wuyouyu.pathosynmod.registry.ModParticles;
+import net.neoforged.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -18,11 +19,6 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
-
-import com.wuyouyu.pathosynmod.registry.ModItems;
-import com.wuyouyu.pathosynmod.registry.ModTabs;
-
-
 
 
 @Mod(PathosynMod.MODID)
@@ -37,13 +33,17 @@ public class PathosynMod {
         ModTabs.TABS.register(modEventBus);
         ModParticles.PARTICLES.register(modEventBus);
         ModComponentTypes.register(modEventBus);
+        ModEntities.ENTITIES.register(modEventBus);
 
 
 
-        // 监听 setup 阶段（如需要）
+        // 通用 setup
         modEventBus.addListener(this::commonSetup);
 
-
+        // ✅ 客户端专用渲染注册
+        if (FMLEnvironment.dist.isClient()) {
+            modEventBus.addListener(PathosynClient::onClientSetup);
+        }
         // 监听事件
 
         LOGGER.info("Pathosyn mod loaded.");

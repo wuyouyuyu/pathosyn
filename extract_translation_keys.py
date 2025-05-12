@@ -1,11 +1,11 @@
 import os
-import re
 import json
+import re
 from dotenv import load_dotenv
 import google.generativeai as genai
 from google.api_core.exceptions import GoogleAPIError
 
-# 配置代理（可选）
+# （可选）代理配置
 os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
 os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
 
@@ -20,7 +20,6 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
 
-# 测试 Gemini 连通性
 def test_gemini_api():
     print(" 正在测试 Gemini API 连通性...")
     try:
@@ -34,19 +33,15 @@ def test_gemini_api():
 if not test_gemini_api():
     exit(1)
 
-# 文件路径
-# 文件路径（注意 assetss）
+# 注意：保持 assetss（用户特意设定）
 EN_FILE = os.path.join("src", "generated", "resources", "assetss", "pathosyn", "lang", "en_us.json")
 ZH_FILE = os.path.join("src", "generated", "resources", "assetss", "pathosyn", "lang", "zh_cn.json")
-
-
 REGISTRY_DIR = os.path.join("src", "main", "java")
 
-# 加载语言文件
+# 加载语言数据
 os.makedirs(os.path.dirname(EN_FILE), exist_ok=True)
 en_data = {}
 zh_data = {}
-
 if os.path.exists(EN_FILE):
     with open(EN_FILE, encoding="utf-8") as f:
         en_data = json.load(f)
@@ -54,42 +49,46 @@ if os.path.exists(ZH_FILE):
     with open(ZH_FILE, encoding="utf-8") as f:
         zh_data = json.load(f)
 
-# 正则提取器
+# 匹配 translatable(...) 和 .register("xxx")
 TRANSLATABLE_PATTERN = re.compile(r'translatable\s*\(\s*"([^"]+)"')
-REGISTER_PATTERN = re.compile(r'registerItem\s*\(\s*"([^"]+)"')
+REGISTER_PATTERN = re.compile(r'\.register\s*\(\s*"([^"]+)"')
 
-# 遍历源码提取键
+# 遍历源码
 for root, _, files in os.walk(REGISTRY_DIR):
     for file in files:
         if file.endswith(".java"):
-            with open(os.path.join(root, file), encoding="utf-8") as f:
+            file_path = os.path.join(root, file)
+            print(f" 正在处理: {file_path}")
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
                 for key in TRANSLATABLE_PATTERN.findall(content):
                     if key not in en_data:
                         print(f" 添加 translatable 键: {key}")
                         en_data[key] = "TODO"
-                        zh_data[key] = "TODO"
+                        if key not in zh_data:
+                            zh_data[key] = "TODO"
 
                 for item_name in REGISTER_PATTERN.findall(content):
-                    key = f"item.pathosyn.{item_name}"
-                    if key not in en_data:
-                        print(f" 添加注册物品键: {key}")
-                        en_data[key] = "TODO"
-                        zh_data[key] = "TODO"
+                    lang_key = f"item.pathosyn.{item_name}"
+                    if lang_key not in en_data:
+                        print(f" 添加注册物品键: {lang_key}")
+                        en_data[lang_key] = "TODO"
+                        if lang_key not in zh_data:
+                            zh_data[lang_key] = "TODO"
 
-# 翻译所有 TODO 项
+# 翻译部分，仅对 en=TODO 的进行补全
 for key, en_text in en_data.items():
     zh_text = zh_data.get(key, "TODO")
 
-    # 如果中文已翻译但英文为 TODO，则自动反填
-    if en_text == "TODO" and zh_text != "TODO":
-        en_data[key] = key.split(".")[-1].replace("_", " ").title()
-        print(f" 填充英文: {key} -> {en_data[key]}")
-        continue
-
     # 若已有英文翻译则跳过
     if en_text != "TODO":
+        continue
+
+    # 若已有中文翻译但英文缺失，则尝试自动生成英文（美化）
+    if zh_text != "TODO":
+        en_data[key] = key.split(".")[-1].replace("_", " ").title()
+        print(f" 填充英文: {key} -> {en_data[key]}")
         continue
 
     try:
@@ -100,8 +99,14 @@ for key, en_text in en_data.items():
 
         response = model.generate_content(prompt)
         translated = response.text.strip().replace('"', '')
-        zh_data[key] = translated
-        print(f" 翻译: {key} -> {translated}")
+
+        # ✅ 不覆盖已有中文
+        if zh_data.get(key) == "TODO":
+            zh_data[key] = translated
+            print(f" 翻译: {key} -> {translated}")
+        else:
+            print(f" 已存在翻译（跳过）: {key} -> {zh_data[key]}")
+
     except GoogleAPIError as e:
         print(f" API 错误: {e}")
         zh_data[key] = "TODO"
@@ -109,10 +114,9 @@ for key, en_text in en_data.items():
         print(f" 翻译失败: {e}")
         zh_data[key] = "TODO"
 
-# 保存结果
+# 写入文件
 with open(EN_FILE, "w", encoding="utf-8") as f:
     json.dump(en_data, f, ensure_ascii=False, indent=2)
-
 with open(ZH_FILE, "w", encoding="utf-8") as f:
     json.dump(zh_data, f, ensure_ascii=False, indent=2)
 

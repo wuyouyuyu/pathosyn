@@ -1,14 +1,17 @@
 {
-  "item.pathosyn.healing_staff": "治疗法杖",
-  "itemGroup.pathosyn.main": "帕索辛",
-  "message.pathosyn.exhausted": "能量耗尽",
-  "message.pathosyn.no_target": "没有目标",
   "message.pathosyn.healed": "已治愈",
-  "message.pathosyn.already_full": "目标生命已满",
-  "item.pathosyn.healing_staff.self": "治疗法杖▼",
-  "item.pathosyn.healing_staff.other": "治疗法杖▲",
+  "message.pathosyn.switched_mode": "已切换模式",
+  "message.pathosyn.exhausted": "充能耗尽",
   "tooltip.pathosyn.charges": "充能次数：%s",
   "tooltip.pathosyn.healing_staff.description.1": "§a用于治疗自己或他人。",
   "tooltip.pathosyn.healing_staff.description.2": "§a治疗量按最大生命值计算。",
-  "tooltip.pathosyn.healing_staff.switch_mode": "§8[%1$s + %2$s] 可切换模式"
+  "tooltip.pathosyn.healing_staff.switch_mode": "§8[%1$s + %2$s] 可切换模式",
+  "item.pathosyn.healing_staff.self": "治疗法杖▼",
+  "item.pathosyn.healing_staff.other": "治疗法杖▲",
+  "item.pathosyn.healing_beam": "治疗光束",
+  "item.pathosyn.healing_staff": "治疗法杖",
+  "item.pathosyn.heal_beam": "治疗光束",
+  "itemGroup.pathosyn.main": "帕索辛",
+  "item.pathosyn.main": "帕索辛"
+
 }
