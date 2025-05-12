@@ -1,0 +1,22 @@
+package com.wuyouyu.pathosynmod.registry;
+
+import com.wuyouyu.pathosynmod.PathosynMod;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.core.registries.Registries;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
+
+public class ModParticles {
+
+    public static final DeferredRegister<ParticleType<?>> PARTICLES =
+            DeferredRegister.create(Registries.PARTICLE_TYPE, PathosynMod.MODID);
+
+
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> HEAL_BEAM =
+            PARTICLES.register("heal_beam", () -> new SimpleParticleType(false));
+
+
+
+}

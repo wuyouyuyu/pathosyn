@@ -5,6 +5,7 @@ package com.wuyouyu.pathosynmod;
 
 import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
 
+import com.wuyouyu.pathosynmod.registry.ModParticles;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -22,6 +23,8 @@ import com.wuyouyu.pathosynmod.registry.ModItems;
 import com.wuyouyu.pathosynmod.registry.ModTabs;
 
 
+
+
 @Mod(PathosynMod.MODID)
 public class PathosynMod {
 
@@ -32,7 +35,7 @@ public class PathosynMod {
         // 注册物品与创造标签
         ModItems.ITEMS.register(modEventBus);
         ModTabs.TABS.register(modEventBus);
-
+        ModParticles.PARTICLES.register(modEventBus);
         ModComponentTypes.register(modEventBus);
 
 
