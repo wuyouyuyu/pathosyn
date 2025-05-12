@@ -4,10 +4,13 @@ package com.wuyouyu.pathosynmod.item.custom;
 import com.wuyouyu.pathosynmod.component.StaffModeComponent;
 
 import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
+import com.wuyouyu.pathosynmod.registry.ModParticles;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -41,54 +44,84 @@ public class HealingStaffItem extends Item {
     public @NotNull InteractionResultHolder<ItemStack> use(Level level, Player player, @NotNull InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
+        // —— 服务端：模式切换、命中检测、治疗 & 粒子广播 ——
         if (!level.isClientSide) {
+            // 1. 潜行 + 右键切换模式
             if (player.isShiftKeyDown()) {
                 int mode = stack.getOrDefault(StaffModeComponent.getModeComponent(), 0);
                 int next = (mode + 1) % 2;
                 stack.set(StaffModeComponent.getModeComponent(), next);
-
                 return InteractionResultHolder.sidedSuccess(stack, false);
             }
 
             int mode = stack.getOrDefault(StaffModeComponent.getModeComponent(), 0);
 
+            // 2. 耗尽检测
             if (isExhausted(stack)) {
                 player.displayClientMessage(Component.translatable("message.pathosyn.exhausted"), true);
                 return InteractionResultHolder.fail(stack);
             }
 
+            // 3. 选定目标
             LivingEntity target = switch (mode) {
                 case 0 -> player;
                 case 1 -> getLookedAtEntity(player);
                 default -> null;
             };
-
             if (target == null || (mode == 1 && target == player)) {
                 player.displayClientMessage(Component.translatable("message.pathosyn.no_target"), true);
-                level.playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1.0f, 1.0f);
+                level.playSound(null, player.blockPosition(),
+                        SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1f, 1f);
                 return InteractionResultHolder.fail(stack);
             }
 
+            // 4. 满血检测
             if (target.getHealth() >= target.getMaxHealth()) {
                 player.displayClientMessage(Component.translatable("message.pathosyn.already_full"), true);
-                level.playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1.0f, 1.0f);
+                level.playSound(null, player.blockPosition(),
+                        SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1f, 1f);
                 return InteractionResultHolder.fail(stack);
             }
 
+            // 5. 执行治疗 & 扣除充能
             float healAmount = target.getMaxHealth() * 0.1f + 6f;
             target.heal(healAmount);
 
             int currentCharges = stack.getOrDefault(ModComponentTypes.getChargeCountComponent(), MAX_CHARGES);
             stack.set(ModComponentTypes.getChargeCountComponent(), currentCharges - 1);
 
-            level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.0f);
-            player.displayClientMessage(Component.translatable("message.pathosyn.healed", target.getName().getString()), true);
-
-            // Add cooldown
+            // 6. 音效、提示与冷却
+            level.playSound(null, player.blockPosition(),
+                    SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1f, 1f);
+            player.displayClientMessage(
+                    Component.translatable("message.pathosyn.healed", target.getName().getString()), true);
             player.getCooldowns().addCooldown(this, 4);
+
+            // 7. 全体可见：沿玩家眼睛到目标位置广播粒子
+            ServerLevel serverLevel = (ServerLevel) level;
+            Vec3 start = player.getEyePosition();
+            Vec3 end   = target.getEyePosition();                        // 取目标眼睛高度
+            Vec3 delta = end.subtract(start);
+            Vec3 step  = delta.normalize().scale(0.5);                   // 每隔 0.5 格
+            int count  = (int) (delta.length() / 0.5);
+
+            for (int i = 0; i <= count; i++) {
+                Vec3 pos = start.add(step.scale(i));
+                serverLevel.sendParticles(
+                        ParticleTypes.ENCHANT,
+                    //    ModParticles.HEAL_BEAM.get(), // 自定义粒子类型
+                        pos.x, pos.y, pos.z,
+                        1,        // 每次发送 1 个粒子
+                        0.0D, 0.0D, 0.0D, // xOffset, yOffset, zOffset
+                        0.0D     // speed
+                );
+            }
+
+            return InteractionResultHolder.sidedSuccess(stack, false);
         }
 
-        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+
+        return InteractionResultHolder.sidedSuccess(stack, true);
     }
 
     // 显示条
