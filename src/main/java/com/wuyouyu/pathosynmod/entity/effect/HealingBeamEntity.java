@@ -3,6 +3,7 @@ package com.wuyouyu.pathosynmod.entity.effect;
 import com.wuyouyu.pathosynmod.item.custom.HealingStaffItem;
 import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
 
+import com.wuyouyu.pathosynmod.registry.ModParticles;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 
@@ -85,11 +86,12 @@ public class HealingBeamEntity extends Entity {
                 this.discard();
             }
         }
+
     }
 
     private void spawnTrailParticles() {
-        this.level().addParticle(ParticleTypes.ENCHANT, getX(), getY(), getZ(), 0, 0, 0);
-        this.level().addParticle(ParticleTypes.END_ROD, getX(), getY(), getZ(), 0, 0.01, 0);
+        this.level().addParticle(ModParticles.HEALING_BEAM.get(), getX(), getY(), getZ(), 0.01, 0.02, 0.01);
+
     }
 
     private void onHitEntity(EntityHitResult result) {

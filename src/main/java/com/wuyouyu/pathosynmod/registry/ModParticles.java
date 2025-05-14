@@ -9,14 +9,9 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 public class ModParticles {
-
     public static final DeferredRegister<ParticleType<?>> PARTICLES =
             DeferredRegister.create(Registries.PARTICLE_TYPE, PathosynMod.MODID);
 
-
-    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> HEAL_BEAM =
-            PARTICLES.register("heal_beam", () -> new SimpleParticleType(false));
-
-
-
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> HEALING_BEAM =
+            PARTICLES.register("healing_beam", () -> new SimpleParticleType(true));
 }

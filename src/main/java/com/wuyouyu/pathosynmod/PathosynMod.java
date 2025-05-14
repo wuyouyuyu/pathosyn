@@ -40,9 +40,10 @@ public class PathosynMod {
         // 通用 setup
         modEventBus.addListener(this::commonSetup);
 
-        // ✅ 客户端专用渲染注册
+        //  客户端专用渲染注册
         if (FMLEnvironment.dist.isClient()) {
-            modEventBus.addListener(PathosynClient::onClientSetup);
+            modEventBus.addListener(PathosynClient::onRegisterParticles);
+            modEventBus.addListener(PathosynClient::onRegisterRenderers);
         }
         // 监听事件
 
