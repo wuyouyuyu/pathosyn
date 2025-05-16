@@ -1,6 +1,6 @@
 package com.wuyouyu.pathosynmod.client.particle;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.world.level.Level;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.*;
 import net.minecraft.core.particles.ParticleTypes;
@@ -11,24 +11,22 @@ import net.neoforged.api.distmarker.OnlyIn;
 @OnlyIn(Dist.CLIENT)
 public class HealingBeamParticle extends TextureSheetParticle {
     private final SpriteSet spriteSet;
+    private final float baseSize;
+
 
     protected HealingBeamParticle(ClientLevel level, double x, double y, double z,
-                                  double xd, double yd, double zd,
-                                  SpriteSet spriteSet) {
+                                  double xd, double yd, double zd, SpriteSet spriteSet) {
         super(level, x, y, z, xd, yd, zd);
         this.spriteSet = spriteSet;
-
-        // 基础视觉参数
-        this.gravity = 0.0F;                          // 不受重力影响
-        this.lifetime = 10;                           // 粒子寿命（tick）
-        this.quadSize = 1.0F;                         // 大小 1x1
-        this.setSpriteFromAge(spriteSet);            // 使用 sprite 动画
+        this.gravity = 0.0F;
+        this.lifetime = 10;
+        this.baseSize = 0.3f;
+        this.quadSize = baseSize;
+        this.setSpriteFromAge(spriteSet);
         this.rCol = 1.0F;
         this.gCol = 1.0F;
         this.bCol = 1.0F;
         this.alpha = 1.0F;
-
-        // 初始速度
         this.xd = xd;
         this.yd = yd;
         this.zd = zd;
@@ -37,8 +35,31 @@ public class HealingBeamParticle extends TextureSheetParticle {
     @Override
     public void tick() {
         super.tick();
+
+        float progress = (float) this.age / this.lifetime;
+
+        // 粒子大小随时间缩小
+        this.quadSize = baseSize * (1.0f - progress);
+
+        // 粒子透明度随时间减弱
+        this.alpha = 1.0f - progress;
+
+        // 粒子颜色插值渐变
+        if (progress < 0.03f) {
+            this.rCol = 0.9f;
+            this.gCol = 0.5f;
+            this.bCol = 0.39f;
+        } else if (progress < 0.73f) {
+            this.rCol = 1.0f;
+            this.gCol = 0.7f;
+            this.bCol = 0.39f;
+        } else {
+            this.rCol = 0.69f;
+            this.gCol = 0.89f;
+            this.bCol = 0.75f;
+        }
+
         this.setSpriteFromAge(this.spriteSet);
-       // 按年龄更新贴图帧
     }
 
     @Override
