@@ -17,7 +17,6 @@ public class ModItems {
 
 
 
-
     private static DeferredItem<Item> registerItem(Supplier<Item> supplier) {
         return ITEMS.register("healing_staff", supplier);
     }

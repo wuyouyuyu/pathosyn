@@ -14,4 +14,7 @@ public class ModParticles {
 
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> HEALING_BEAM =
             PARTICLES.register("healing_beam", () -> new SimpleParticleType(true));
+
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> HEALING_BEAM_HIT =
+            PARTICLES.register("healing_beam_hit", () -> new SimpleParticleType(true));
 }

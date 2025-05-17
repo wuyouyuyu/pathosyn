@@ -7,6 +7,7 @@ import com.wuyouyu.pathosynmod.entity.effect.HealingBeamEntity;
 import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
 import com.wuyouyu.pathosynmod.registry.ModEntities;
 
+import com.wuyouyu.pathosynmod.registry.ModParticles;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
@@ -74,9 +75,14 @@ public class HealingStaffItem extends Item {
 
                 if (level instanceof ServerLevelAccessor serverLevel) {
                     serverLevel.getLevel().sendParticles(
-                            net.minecraft.core.particles.ParticleTypes.HEART,
-                            player.getX(), player.getY() + player.getBbHeight() / 2, player.getZ(),
-                            5, 0.2, 0.3, 0.2, 0.01);
+                            ModParticles.HEALING_BEAM_HIT.get(),
+                            player.getX(),
+                            player.getY() + player.getBbHeight() / 2,
+                            player.getZ(),
+                            6,                      // 粒子数量略多，给出“爆发感”
+                            0.2, 0.2, 0.2,          // 扩散范围 x/y/z
+                            0.01                    // 漂浮速度
+                    );
                 }
 
                 level.playSound(null, player.blockPosition(),

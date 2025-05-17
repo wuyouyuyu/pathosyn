@@ -66,23 +66,30 @@ public class HealingBeamEntity extends Entity {
     public void tick() {
         super.tick();
 
+        // 尾迹粒子效果
+        if (this.level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(
+                    ModParticles.HEALING_BEAM.get(),
+                    this.getX(),
+                    this.getY(),
+                    this.getZ(),
+                    3, 0.05, 0.05, 0.05, 0.01
+            );
+        }
+
         if (this.origin == null) {
             this.origin = this.position();
         }
 
-        if (net.minecraft.client.Minecraft.getInstance().level != null) {
-            for (int i = 0; i < 3; i++) {
-                net.minecraft.client.Minecraft.getInstance().level.addParticle(
-                        ModParticles.HEALING_BEAM.get(),
-                        this.getX(),
-                        this.getY(),
-                        this.getZ(),
-                        0.0, 0.01, 0.0
-                );
-            }
+        if (this.level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(
+                    ModParticles.HEALING_BEAM.get(),
+                    this.getX(), this.getY(), this.getZ(),
+                    3, 0.05, 0.05, 0.05, 0.01
+            );
         }
 
-        if (!this.level.isClientSide) {
+        if (!this.level().isClientSide) {
             this.setPos(this.position().add(this.getDeltaMovement()));
 
             if (this.origin.distanceTo(this.position()) >= MAX_RANGE) {
@@ -108,6 +115,9 @@ public class HealingBeamEntity extends Entity {
         if (!(owner instanceof Player player)) return;
 
         if (hit instanceof LivingEntity target) {
+            //
+
+
             ItemStack held = player.getMainHandItem();
             if (!(held.getItem() instanceof HealingStaffItem)) return;
 
@@ -118,20 +128,35 @@ public class HealingBeamEntity extends Entity {
             target.heal(healAmount);
             held.set(ModComponentTypes.getChargeCountComponent(), charges - 1);
 
-            if (this.level instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(
-                        ModParticles.HEALING_BEAM.get(),
+            if (this.level() instanceof ServerLevel serverLevel) {
+                Vec3 center = new Vec3(
                         target.getX(),
-                        target.getY() + target.getBbHeight() / 2,
-                        target.getZ(),
-                        5,     // 粒子数量
-                        0.2,   // 偏移X
-                        0.3,   // 偏移Y
-                        0.2,   // 偏移Z
-                        0.01   // 速度
+                        target.getY() + target.getBbHeight(),
+                        target.getZ()
                 );
-            }
 
+                RandomSource random = serverLevel.getRandom();
+                int particleCount = 2 + random.nextInt(3);
+                double radius = 0.4;
+
+                for (int i = 0; i < particleCount; i++) {
+                    double angle = i * (2 * Math.PI / particleCount);
+                    double offsetX = radius * Math.cos(angle);
+                    double offsetZ = radius * Math.sin(angle);
+                    double offsetY = (random.nextDouble() - 0.5) * 0.2;  // 小范围起伏
+
+                    serverLevel.sendParticles(
+                            ModParticles.HEALING_BEAM_HIT.get(),
+                            center.x + offsetX,
+                            center.y + offsetY,
+                            center.z + offsetZ,
+                            1, 0, 0, 0, 0
+                    );
+                }
+
+                serverLevel.playSound(null, target.blockPosition(),
+                        SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.0f);
+            }
             player.displayClientMessage(
                     Component.translatable("message.pathosyn.healed", target.getName().getString()), true);
 
@@ -147,37 +172,4 @@ public class HealingBeamEntity extends Entity {
 
     @Override
     protected void addAdditionalSaveData(@NotNull net.minecraft.nbt.CompoundTag tag) {}
-
-    // 静态内部粒子工具类
-    public static class ParticleSpawner {
-
-        public static void spawnTrail(Level level, Vec3 position, RandomSource random, ParticleOptions particle) {
-            BlockPos base = BlockPos.containing(position);
-            for (int i = 0; i < 3; i++) {
-                ParticleUtils.spawnParticleOnFace(
-                        level,
-                        base,
-                        Direction.UP,
-                        particle,
-                        new Vec3(0.0, 0.01, 0.0),
-                        0.3
-                );
-            }
-        }
-
-        public static void spawnBurst(Level level, Vec3 center, RandomSource random, ParticleOptions particle) {
-            BlockPos pos = BlockPos.containing(center);
-            for (Direction dir : Direction.values()) {
-                ParticleUtils.spawnParticlesOnBlockFace(
-                        level,
-                        pos,
-                        particle,
-                        ConstantInt.of(5),
-                        dir,
-                        () -> new Vec3(0.0, 0.01, 0.0),
-                        0.5
-                );
-            }
-        }
-    }
 }

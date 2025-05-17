@@ -1,5 +1,6 @@
 package com.wuyouyu.pathosynmod.client;
 
+import com.wuyouyu.pathosynmod.client.particle.HealingBeamHitParticle;
 import com.wuyouyu.pathosynmod.client.particle.HealingBeamParticle;
 import com.wuyouyu.pathosynmod.registry.ModEntities;
 import com.wuyouyu.pathosynmod.registry.ModParticles;
@@ -21,6 +22,7 @@ public class PathosynClient {
     @SubscribeEvent
     public static void onRegisterParticles(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(ModParticles.HEALING_BEAM.get(), HealingBeamParticle.Provider::new);
+        event.registerSpriteSet(ModParticles.HEALING_BEAM_HIT.get(), HealingBeamHitParticle.Provider::new); // ✅ 命中反馈粒子注册
     }
 
     // 注册实体渲染器
