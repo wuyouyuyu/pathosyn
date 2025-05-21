@@ -53,8 +53,20 @@ public class HealingBeamEntity extends Entity {
         this.owner = player;
     }
 
-    public void setDirection(Vec3 dir) {
-        Vec3 direction = dir.normalize().scale(SPEED);
+    /**
+     * 通过 yawDegreesOffset 直接调整发射方向，正值左偏，负值右偏
+     */
+    public void setDirection(Vec3 dir, double yawDegreesOffset) {
+        double yawRad = Math.toRadians(yawDegreesOffset);
+        double cos = Math.cos(yawRad);
+        double sin = Math.sin(yawRad);
+
+        // 水平旋转
+        double newX = dir.x * cos - dir.z * sin;
+        double newZ = dir.x * sin + dir.z * cos;
+        Vec3 newDir = new Vec3(newX, dir.y, newZ);
+
+        Vec3 direction = newDir.normalize().scale(SPEED);
         this.setDeltaMovement(direction);
     }
 
@@ -66,27 +78,22 @@ public class HealingBeamEntity extends Entity {
     public void tick() {
         super.tick();
 
-        // 尾迹粒子效果
-        if (this.level() instanceof ServerLevel serverLevel) {
-            serverLevel.sendParticles(
-                    ModParticles.HEALING_BEAM.get(),
-                    this.getX(),
-                    this.getY(),
-                    this.getZ(),
-                    3, 0.05, 0.05, 0.05, 0.01
-            );
-        }
-
-        if (this.origin == null) {
-            this.origin = this.position();
-        }
+        // 1. 尾迹粒子效果：数量随 age 递增（最大 8 个）
+        int maxParticles = 8;
+        int particles = Math.max(1, (int)(maxParticles * (age / (float)LIFESPAN_TICKS)));
+        // 二次递增: int particles = Math.max(1, (int)(maxParticles * Math.pow(age / (float)LIFESPAN_TICKS, 2)));
 
         if (this.level() instanceof ServerLevel serverLevel) {
             serverLevel.sendParticles(
                     ModParticles.HEALING_BEAM.get(),
                     this.getX(), this.getY(), this.getZ(),
-                    3, 0.05, 0.05, 0.05, 0.01
+                    particles,                          // 递增粒子数
+                    0.05, 0.05, 0.05, 0.01              // 偏移和速度参数
             );
+        }
+
+        if (this.origin == null) {
+            this.origin = this.position();
         }
 
         if (!this.level().isClientSide) {
@@ -115,9 +122,6 @@ public class HealingBeamEntity extends Entity {
         if (!(owner instanceof Player player)) return;
 
         if (hit instanceof LivingEntity target) {
-            //
-
-
             ItemStack held = player.getMainHandItem();
             if (!(held.getItem() instanceof HealingStaffItem)) return;
 

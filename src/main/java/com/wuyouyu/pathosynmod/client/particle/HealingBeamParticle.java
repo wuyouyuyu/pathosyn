@@ -7,6 +7,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.NotNull;
 
 public class HealingBeamParticle extends TextureSheetParticle {
     private final SpriteSet spriteSet;
@@ -67,7 +68,7 @@ public class HealingBeamParticle extends TextureSheetParticle {
     }
 
     @Override
-    public ParticleRenderType getRenderType() {
+    public @NotNull ParticleRenderType getRenderType() {
         return ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
@@ -80,7 +81,7 @@ public class HealingBeamParticle extends TextureSheetParticle {
         }
 
         @Override
-        public Particle createParticle(SimpleParticleType type, ClientLevel level,
+        public Particle createParticle(@NotNull SimpleParticleType type, @NotNull ClientLevel level,
                                        double x, double y, double z,
                                        double xd, double yd, double zd) {
             return new HealingBeamParticle(level, x, y, z, xd , yd , zd , this.sprite);

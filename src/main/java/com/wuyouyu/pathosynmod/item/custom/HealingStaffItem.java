@@ -31,6 +31,7 @@ import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.level.Level;
 
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -63,7 +64,7 @@ public class HealingStaffItem extends Item {
                 return InteractionResultHolder.fail(stack); //  不触发冷却
             }
 
-// ✅ 只有在可使用时才设置冷却
+//  只有在可使用时才设置冷却
             player.getCooldowns().addCooldown(this, 20);
 
             int mode = stack.getOrDefault(StaffModeComponent.getModeComponent(), 0);
@@ -93,15 +94,31 @@ public class HealingStaffItem extends Item {
                 return InteractionResultHolder.sidedSuccess(stack, false);
             }
 
-            // 模式 1：发射粒子束实体
-            stack.set(ModComponentTypes.getChargeCountComponent(), currentCharges - 1);
+// 1. 计算自定义起点
+            Vec3 eyePos = new Vec3(player.getX(), player.getEyeY(), player.getZ());
+            Vec3 rightOffset = player.getViewVector(1.0F).cross(new Vec3(0, 1, 0)).normalize().scale(0.3); // 右偏
+            Vec3 downOffset = new Vec3(0, -0.2, 0); // 下偏
+            Vec3 start = eyePos.add(rightOffset).add(downOffset);
 
+// 2. 计算准心目标点（如无目标实体就正前方 maxRange 距离）
+            double maxRange = 8.0;
+            Vec3 look = player.getLookAngle();
+            Vec3 center = eyePos.add(look.scale(maxRange));
+
+// 3. 方向（瞄准准心/目标中心）
+            Vec3 direction = center.subtract(start).normalize();
+
+// 4. 创建并发射实体
             HealingBeamEntity beam = new HealingBeamEntity(ModEntities.HEALING_BEAM.get(), level);
             beam.setOwner(player);
-            beam.setDirection(player.getLookAngle());
+            beam.setDirection(direction, 0);
             beam.setSourceStack(stack);
-            beam.setPos(player.getX(), player.getEyeY(), player.getZ());
+            beam.setPos(start.x, start.y, start.z);
             level.addFreshEntity(beam);
+
+// 5. 扣除充能
+            stack.set(ModComponentTypes.getChargeCountComponent(), currentCharges - 1);
+
 
             return InteractionResultHolder.sidedSuccess(stack, false);
         }
