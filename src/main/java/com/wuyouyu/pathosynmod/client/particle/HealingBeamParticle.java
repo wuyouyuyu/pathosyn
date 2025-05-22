@@ -50,19 +50,25 @@ public class HealingBeamParticle extends TextureSheetParticle {
         this.z += 0;
 
         // 粒子颜色渐变
+// 刚生成时淡蓝色
         if (progress < 0.03f) {
-            this.rCol = 0.4f;
-            this.gCol = 0.6f;
-            this.bCol = 1.0f;
-        } else if (progress < 0.73f) {
-            this.rCol = 0.5f;
-            this.gCol = 0.5f;
-            this.bCol = 1.0f;
-        } else {
-            this.rCol = 0.8f;
-            this.gCol = 0.6f;
+            this.rCol = 0.7f;
+            this.gCol = 0.9f;
             this.bCol = 1.0f;
         }
+// 过程中过渡成更明亮的天蓝色
+        else if (progress < 0.73f) {
+            this.rCol = 0.8f;
+            this.gCol = 0.95f;
+            this.bCol = 1.0f;
+        }
+// 尾部可微微偏白蓝
+        else {
+            this.rCol = 1.0f;
+            this.gCol = 1.0f;
+            this.bCol = 1.0f;
+        }
+
 
         this.setSpriteFromAge(this.spriteSet);
     }

@@ -1,6 +1,7 @@
 package com.wuyouyu.pathosynmod.item.custom;
 
 
+import com.wuyouyu.pathosynmod.component.ChargeCountComponent;
 import com.wuyouyu.pathosynmod.component.StaffModeComponent;
 
 import com.wuyouyu.pathosynmod.entity.effect.HealingBeamEntity;
@@ -8,10 +9,12 @@ import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
 import com.wuyouyu.pathosynmod.registry.ModEntities;
 
 import com.wuyouyu.pathosynmod.registry.ModParticles;
+import com.wuyouyu.pathosynmod.util.ParticleUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 
 import net.minecraft.sounds.SoundEvents;
@@ -58,13 +61,12 @@ public class HealingStaffItem extends Item {
                 return InteractionResultHolder.sidedSuccess(stack, false);
             }
 
-            int currentCharges = stack.getOrDefault(ModComponentTypes.getChargeCountComponent(), MAX_CHARGES);
-            if (currentCharges <= 0) {
+            // 判断充能是否用尽
+            if (ChargeCountComponent.isExhausted(stack)) {
                 player.displayClientMessage(Component.translatable("message.pathosyn.exhausted"), true);
-                return InteractionResultHolder.fail(stack); //  不触发冷却
+                return InteractionResultHolder.fail(stack);
             }
 
-//  只有在可使用时才设置冷却
             player.getCooldowns().addCooldown(this, 20);
 
             int mode = stack.getOrDefault(StaffModeComponent.getModeComponent(), 0);
@@ -72,19 +74,20 @@ public class HealingStaffItem extends Item {
                 // 模式 0：立即治疗自己
                 float healAmount = player.getMaxHealth() * 0.1f + 6f;
                 player.heal(healAmount);
-                stack.set(ModComponentTypes.getChargeCountComponent(), currentCharges - 1);
 
-                if (level instanceof ServerLevelAccessor serverLevel) {
-                    serverLevel.getLevel().sendParticles(
-                            ModParticles.HEALING_BEAM_HIT.get(),
-                            player.getX(),
-                            player.getY() + player.getBbHeight() / 2,
-                            player.getZ(),
-                            6,                      // 粒子数量略多，给出“爆发感”
-                            0.2, 0.2, 0.2,          // 扩散范围 x/y/z
-                            0.01                    // 漂浮速度
-                    );
-                }
+                // 充能 -1
+                ChargeCountComponent.consume(stack);
+
+                // 法阵符文粒子（推荐用工具类，可多物品复用）
+                ParticleUtil.spawnGreenCircleParticles(
+                        player,     // 以玩家为中心
+                        24,         // 环形点数（推荐 24~32）
+                        1.2,        // 半径（更大更明显）
+                        0.1,        // 离地高度（略高于地表）
+                        2.5F        // 粒子尺寸（大法阵）
+                );
+
+
 
                 level.playSound(null, player.blockPosition(),
                         SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.0f);
@@ -94,21 +97,22 @@ public class HealingStaffItem extends Item {
                 return InteractionResultHolder.sidedSuccess(stack, false);
             }
 
-// 1. 计算自定义起点
+            // 模式 1：发射治疗光束
+            // 1. 计算自定义起点
             Vec3 eyePos = new Vec3(player.getX(), player.getEyeY(), player.getZ());
             Vec3 rightOffset = player.getViewVector(1.0F).cross(new Vec3(0, 1, 0)).normalize().scale(0.3); // 右偏
             Vec3 downOffset = new Vec3(0, -0.2, 0); // 下偏
             Vec3 start = eyePos.add(rightOffset).add(downOffset);
 
-// 2. 计算准心目标点（如无目标实体就正前方 maxRange 距离）
+            // 2. 计算准心目标点（如无目标实体就正前方 maxRange 距离）
             double maxRange = 8.0;
             Vec3 look = player.getLookAngle();
             Vec3 center = eyePos.add(look.scale(maxRange));
 
-// 3. 方向（瞄准准心/目标中心）
+            // 3. 方向（瞄准准心/目标中心）
             Vec3 direction = center.subtract(start).normalize();
 
-// 4. 创建并发射实体
+            // 4. 创建并发射实体
             HealingBeamEntity beam = new HealingBeamEntity(ModEntities.HEALING_BEAM.get(), level);
             beam.setOwner(player);
             beam.setDirection(direction, 0);
@@ -116,9 +120,8 @@ public class HealingStaffItem extends Item {
             beam.setPos(start.x, start.y, start.z);
             level.addFreshEntity(beam);
 
-// 5. 扣除充能
-            stack.set(ModComponentTypes.getChargeCountComponent(), currentCharges - 1);
-
+            // 5. 扣除充能（工具类封装）
+            ChargeCountComponent.consume(stack);
 
             return InteractionResultHolder.sidedSuccess(stack, false);
         }
@@ -133,7 +136,7 @@ public class HealingStaffItem extends Item {
 
     @Override
     public int getBarWidth(@NotNull ItemStack stack) {
-        int value = stack.getOrDefault(ModComponentTypes.getChargeCountComponent(), MAX_CHARGES);
+        int value = ChargeCountComponent.get(stack); // 用工具方法
         return Math.round(13.0F * value / MAX_CHARGES);
     }
 
@@ -158,7 +161,7 @@ public class HealingStaffItem extends Item {
 
     @Override
     public void appendHoverText(@NotNull ItemStack stack, @NotNull TooltipContext context, List<Component> tooltip, @NotNull TooltipFlag flag) {
-        int charges = stack.getOrDefault(ModComponentTypes.getChargeCountComponent(), MAX_CHARGES);
+        int charges = ChargeCountComponent.get(stack);
 
         tooltip.add(Component.translatable("tooltip.pathosyn.charges", charges).withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.literal(""));
@@ -187,9 +190,9 @@ public class HealingStaffItem extends Item {
     }
 
     private void initializeRandomCharges(ItemStack stack, Level level) {
-        if (!stack.has(ModComponentTypes.getChargeCountComponent())) {
+        if (ChargeCountComponent.get(stack) == 0) { // 判断当前是否有充能
             int value = 3 + level.random.nextInt(MAX_CHARGES - 2);
-            stack.set(ModComponentTypes.getChargeCountComponent(), value);
+            ChargeCountComponent.set(stack, value);
         }
     }
 }

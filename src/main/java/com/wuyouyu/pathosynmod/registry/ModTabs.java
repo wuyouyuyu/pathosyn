@@ -1,7 +1,7 @@
 package com.wuyouyu.pathosynmod.registry;
 
 import com.wuyouyu.pathosynmod.PathosynMod;
-import com.wuyouyu.pathosynmod.item.custom.ChargeCountComponent;
+import com.wuyouyu.pathosynmod.component.ChargeCountComponent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;

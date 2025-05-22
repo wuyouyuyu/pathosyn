@@ -3,7 +3,7 @@ package com.wuyouyu.pathosynmod.registry;
 
 import com.mojang.serialization.Codec;
 import com.wuyouyu.pathosynmod.component.StaffModeComponent;
-import com.wuyouyu.pathosynmod.item.custom.ChargeCountComponent;
+import com.wuyouyu.pathosynmod.component.ChargeCountComponent;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
