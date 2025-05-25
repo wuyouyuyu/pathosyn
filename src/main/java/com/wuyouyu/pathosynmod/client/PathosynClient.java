@@ -22,7 +22,7 @@ public class PathosynClient {
     @SubscribeEvent
     public static void onRegisterParticles(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(ModParticles.HEALING_BEAM.get(), HealingBeamParticle.Provider::new);
-        event.registerSpriteSet(ModParticles.HEALING_BEAM_HIT.get(), HealingBeamHitParticle.Provider::new); // ✅ 命中反馈粒子注册
+        event.registerSpriteSet(ModParticles.PATHOSYN_SYMBOLS.get(), HealingBeamHitParticle.Provider::new);
     }
 
     // 注册实体渲染器

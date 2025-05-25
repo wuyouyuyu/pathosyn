@@ -38,6 +38,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 
 public class HealingStaffItem extends Item {
@@ -79,12 +80,15 @@ public class HealingStaffItem extends Item {
                 ChargeCountComponent.consume(stack);
 
                 // 法阵符文粒子（推荐用工具类，可多物品复用）
-                ParticleUtil.spawnGreenCircleParticles(
-                        player,     // 以玩家为中心
-                        24,         // 环形点数（推荐 24~32）
-                        1.2,        // 半径（更大更明显）
-                        0.1,        // 离地高度（略高于地表）
-                        2.5F        // 粒子尺寸（大法阵）
+                ParticleUtil.spawnRuneRing(
+                        player,                  // 以玩家为中心
+                        24,                      // 环形点数
+                        1.2,                     // 半径
+                        0.1,                     // 离地高度
+                        ModParticles.PATHOSYN_SYMBOLS.get(), // 你的符文粒子类型
+                        0.2f, 0.95f, 0.35f,      // r, g, b（绿色调）
+                        IntStream.range(0, 24).toArray(), // 可用帧池，24帧（你可以随机、固定、或按需要设计）
+                        0.36f                    // 粒子尺寸
                 );
 
 

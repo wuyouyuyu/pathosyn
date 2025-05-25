@@ -1,44 +1,63 @@
 package com.wuyouyu.pathosynmod.client.particle;
 
+
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.*;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.particles.SimpleParticleType;
+
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Field;
+
+
 @OnlyIn(Dist.CLIENT)
-public class HealingBeamHitParticle extends TextureSheetParticle {
-    private final SpriteSet spriteSet;
+public class HealingBeamHitParticle extends SingleQuadParticle {
+    private final TextureAtlasSprite sprite;
+    private final ParticleFrameData.FrameRect rect;
     private final float baseSize;
+    // ...其它参数
 
-    protected HealingBeamHitParticle(ClientLevel level, double x, double y, double z,
-                                     double xd, double yd, double zd, SpriteSet spriteSet) {
-        super(level, x, y, z, xd, yd, zd);
-        this.spriteSet = spriteSet;
-        this.gravity = 0.0F;
-        this.lifetime = 20; // 寿命延长为20 ticks（1秒）
-        // 尺寸差异
-        this.baseSize = 0.1f + level.random.nextFloat() * 0.9f;  // 范围
-        this.quadSize = baseSize;
-        this.setSpriteFromAge(spriteSet);
-        this.xd = 0.0;
-        this.yd = 0.08;
-        this.zd = 0.0;
-        this.rCol = 1.0F;
-        this.gCol = 1.0F;
-        this.bCol = 1.0F;
-        this.alpha = 1.0F;
-        this.hasPhysics = true;
-        this.friction = 0.7f;  // 有阻力，越小越慢
-
+    public HealingBeamHitParticle(
+            ClientLevel level, double x, double y, double z,
+            float r, float g, float b, float size,
+            TextureAtlasSprite sprite,
+            ParticleFrameData.FrameRect rect
+    ) {
+        super(level, x, y, z);
+        this.baseSize = size;
+        this.quadSize = size;
+        this.sprite = sprite;
+        this.rect = rect;
+        this.rCol = r; this.gCol = g; this.bCol = b;
+        // ...其它初始化
     }
+
+    private float[] calcUV() {
+        float u0 = sprite.getU(rect.x());
+        float u1 = sprite.getU(rect.x() + rect.width());
+        float v0 = sprite.getV(rect.y());
+        float v1 = sprite.getV(rect.y() + rect.height());
+        return new float[]{u0, u1, v0, v1};
+    }
+
+    @Override protected float getU0() { return calcUV()[0]; }
+    @Override protected float getU1() { return calcUV()[1]; }
+    @Override protected float getV0() { return calcUV()[2]; }
+    @Override protected float getV1() { return calcUV()[3]; }
+
+    @Override
+    public int getLightColor(float partialTick) { return 0xF000F0; }
 
     @Override
     public void tick() {
         super.tick();
-        // 保持不变
-        this.setSpriteFromAge(this.spriteSet);
+        float progress = (float) this.age / this.lifetime;
+        this.alpha = 1.0f - progress;
+        this.quadSize = baseSize * (0.85f + 0.25f * (1 - progress));
+        // 粒子颜色渐变，在这里更新 this.rCol, this.gCol, this.bCol
     }
 
     @Override
@@ -46,21 +65,51 @@ public class HealingBeamHitParticle extends TextureSheetParticle {
         return ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
-    @OnlyIn(Dist.CLIENT)
     public static class Provider implements ParticleProvider<SimpleParticleType> {
-        private final SpriteSet sprite;
+        private final SpriteSet spriteSet;
 
-        public Provider(SpriteSet sprite) {
-            this.sprite = sprite;
+        public Provider(SpriteSet spriteSet) {
+            this.spriteSet = spriteSet;
+
+            // 尝试打印所有实际 SpriteSet 里的 sprite 名字（只做 debug）
+            try {
+                Field spritesField = spriteSet.getClass().getDeclaredField("sprites");
+                spritesField.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                java.util.List<TextureAtlasSprite> sprites = (java.util.List<TextureAtlasSprite>) spritesField.get(spriteSet);
+                for (int i = 0; i < sprites.size(); i++) {
+                    System.out.println("SpriteSet[" + i + "]: " + sprites.get(i).contents().name());
+                }
+            } catch (Exception e) {
+                System.out.println("无法打印 SpriteSet 贴图: " + e);
+            }
         }
-
         @Override
-        public Particle createParticle(@NotNull SimpleParticleType type, @NotNull ClientLevel level,
-                                       double x, double y, double z,
-                                       double xd, double yd, double zd) {
-            return new HealingBeamHitParticle(level, x, y, z, xd, yd, zd, this.sprite);
+        public Particle createParticle(
+                @NotNull SimpleParticleType type, @NotNull ClientLevel level,
+                double x, double y, double z,
+                double xd, double yd, double zd
+        ) {
+            float r = (float) xd;
+            float g = (float) yd;
+            float b = (float) zd;
+            int frameIndex = (int) z;
+
+            // 只用一张大贴图（SpriteSet），实际帧区域用FrameRect[]描述
+            TextureAtlasSprite sprite = spriteSet.get(level.random); // 拿整张精灵图
+            // 安全校验
+            ParticleFrameData.FrameRect rect;
+            if (frameIndex >= 0 && frameIndex < ParticleFrameData.HEALING_FRAMES.length) {
+                rect = ParticleFrameData.HEALING_FRAMES[frameIndex];
+            } else {
+                rect = ParticleFrameData.HEALING_FRAMES[0]; // 或抛异常
+            }
+
+            return new HealingBeamHitParticle(
+                    level, x, y, z, r, g, b, 0.36f, // 可参数化尺寸
+                    sprite, rect
+            );
         }
     }
 }
-
 

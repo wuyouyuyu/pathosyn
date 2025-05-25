@@ -5,6 +5,7 @@ import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
 
 
 import com.wuyouyu.pathosynmod.registry.ModParticles;
+import com.wuyouyu.pathosynmod.util.ParticleUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
@@ -149,12 +150,16 @@ public class HealingBeamEntity extends Entity {
                     double offsetZ = radius * Math.sin(angle);
                     double offsetY = (random.nextDouble() - 0.5) * 0.2;  // 小范围起伏
 
-                    serverLevel.sendParticles(
-                            ModParticles.HEALING_BEAM_HIT.get(),
-                            center.x + offsetX,
-                            center.y + offsetY,
-                            center.z + offsetZ,
-                            1, 0, 0, 0, 0
+                    int[] wandFrames = new int[]{3, 7, 14};
+                    ParticleUtil.spawnRuneRing(
+                            player,
+                            wandFrames.length,
+                            1.2, 0.1,
+                            ModParticles.PATHOSYN_SYMBOLS.get(),
+                            0.2f, 0.95f, 0.35f,
+                            wandFrames,
+                            0.36f
+
                     );
                 }
 
