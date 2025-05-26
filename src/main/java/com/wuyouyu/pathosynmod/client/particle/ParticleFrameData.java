@@ -6,12 +6,8 @@ public class ParticleFrameData {
 
     // 法阵符文帧表
     public static final FrameRect[] HEALING_FRAMES = {
-            new FrameRect(1, 1, 4, 7),
-            new FrameRect(7, 1, 4, 7),
-            new FrameRect(13, 1, 4, 7),
-            // ...
+            new FrameRect(0, 0, 128, 128) // 全图
     };
-
     // 批量自动生成带间隔帧表的静态方法
     public static FrameRect[] generateUniformFrames(
             int frames, int startX, int startY, int width, int height, int gapX, int gapY, int perRow) {

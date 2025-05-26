@@ -40,6 +40,7 @@ public class HealingBeamHitParticle extends SingleQuadParticle {
         float u1 = sprite.getU(rect.x() + rect.width());
         float v0 = sprite.getV(rect.y());
         float v1 = sprite.getV(rect.y() + rect.height());
+        System.out.println("【全图测试】rect=(0,0,128,128), u0=" + u0 + ", u1=" + u1 + ", v0=" + v0 + ", v1=" + v1);
         return new float[]{u0, u1, v0, v1};
     }
 
@@ -67,48 +68,50 @@ public class HealingBeamHitParticle extends SingleQuadParticle {
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {
         private final SpriteSet spriteSet;
+        private static int printCount = 0;
+
+        private static boolean printed = false;
 
         public Provider(SpriteSet spriteSet) {
             this.spriteSet = spriteSet;
 
-            // 尝试打印所有实际 SpriteSet 里的 sprite 名字（只做 debug）
-            try {
-                Field spritesField = spriteSet.getClass().getDeclaredField("sprites");
-                spritesField.setAccessible(true);
-                @SuppressWarnings("unchecked")
-                java.util.List<TextureAtlasSprite> sprites = (java.util.List<TextureAtlasSprite>) spritesField.get(spriteSet);
-                for (int i = 0; i < sprites.size(); i++) {
-                    System.out.println("SpriteSet[" + i + "]: " + sprites.get(i).contents().name());
-                }
-            } catch (Exception e) {
-                System.out.println("无法打印 SpriteSet 贴图: " + e);
-            }
         }
         @Override
         public Particle createParticle(
-                @NotNull SimpleParticleType type, @NotNull ClientLevel level,
+                SimpleParticleType type, ClientLevel level,
                 double x, double y, double z,
                 double xd, double yd, double zd
         ) {
-            float r = (float) xd;
-            float g = (float) yd;
-            float b = (float) zd;
-            int frameIndex = (int) z;
+            int frameIndex = (int) xd;
+            TextureAtlasSprite sprite = spriteSet.get(level.random);
 
-            // 只用一张大贴图（SpriteSet），实际帧区域用FrameRect[]描述
-            TextureAtlasSprite sprite = spriteSet.get(level.random); // 拿整张精灵图
-            // 安全校验
-            ParticleFrameData.FrameRect rect;
-            if (frameIndex >= 0 && frameIndex < ParticleFrameData.HEALING_FRAMES.length) {
-                rect = ParticleFrameData.HEALING_FRAMES[frameIndex];
-            } else {
-                rect = ParticleFrameData.HEALING_FRAMES[0]; // 或抛异常
+            // 打印前16帧的帧号和切割坐标
+            if (printCount < 16) {
+                ParticleFrameData.FrameRect rect = ParticleFrameData.HEALING_FRAMES[
+                        frameIndex >= 0 && frameIndex < ParticleFrameData.HEALING_FRAMES.length ? frameIndex : 0
+                        ];
+                System.out.println(
+                        "帧 index=" + frameIndex +
+                                ", rect: x=" + rect.x() +
+                                ", y=" + rect.y() +
+                                ", width=" + rect.width() +
+                                ", height=" + rect.height()
+                );
+                System.out.println("sprite min U,V: " + sprite.getU0() + "," + sprite.getV0());
+                System.out.println("sprite max U,V: " + sprite.getU1() + "," + sprite.getV1());
+                System.out.println("sprite width=" + sprite.contents().width() + ", height=" + sprite.contents().height());
+                System.out.println("rect: x=" + rect.x() + ", y=" + rect.y() + ", w=" + rect.width() + ", h=" + rect.height());
+                System.out.println(
+                        "贴图宽度=" + sprite.contents().width() +
+                                ", 贴图高度=" + sprite.contents().height()
+                );
+                printCount++;
             }
 
-            return new HealingBeamHitParticle(
-                    level, x, y, z, r, g, b, 0.36f, // 可参数化尺寸
-                    sprite, rect
-            );
+            ParticleFrameData.FrameRect rect = ParticleFrameData.HEALING_FRAMES[
+                    frameIndex >= 0 && frameIndex < ParticleFrameData.HEALING_FRAMES.length ? frameIndex : 0
+                    ];
+            return new HealingBeamHitParticle(level, x, y, z, 0.2f, 0.95f, 0.35f, 0.36f, sprite, rect);
         }
     }
 }

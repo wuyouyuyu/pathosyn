@@ -81,14 +81,12 @@ public class HealingStaffItem extends Item {
 
                 // 法阵符文粒子（推荐用工具类，可多物品复用）
                 ParticleUtil.spawnRuneRing(
-                        player,                  // 以玩家为中心
-                        24,                      // 环形点数
-                        1.2,                     // 半径
-                        0.1,                     // 离地高度
-                        ModParticles.PATHOSYN_SYMBOLS.get(), // 你的符文粒子类型
-                        0.2f, 0.95f, 0.35f,      // r, g, b（绿色调）
-                        IntStream.range(0, 24).toArray(), // 可用帧池，24帧（你可以随机、固定、或按需要设计）
-                        0.36f                    // 粒子尺寸
+                        player,
+                        24,
+                        1.2,
+                        0.1,
+                        ModParticles.PATHOSYN_SYMBOLS.get(),
+                        IntStream.range(0, 24).toArray()
                 );
 
 

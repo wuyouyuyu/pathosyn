@@ -14,7 +14,7 @@ public class ParticleUtil {
     public static void spawnRuneRing(
             Entity entity, int runeCount, double radius, double yOffset,
             SimpleParticleType runeParticleType,
-            float r, float g, float b, int[] framePool, float size
+            int[] framePool // 只保留帧池
     ) {
         if (!(entity.level() instanceof ServerLevel serverLevel)) return;
         double baseY = entity.getY() + yOffset;
@@ -27,11 +27,12 @@ public class ParticleUtil {
             double px = x + radius * Math.cos(angle);
             double pz = z + radius * Math.sin(angle);
             int frameIndex = framePool.length > 0 ? framePool[rand.nextInt(framePool.length)] : 0;
-            // 只传颜色和帧号，size编码到frameIndex高位
             serverLevel.sendParticles(
                     runeParticleType, px, baseY, pz,
                     1,
-                    r, g, b, frameIndex
+                    frameIndex, // dx=frameIndex
+                    0, 0,
+                    0
             );
         }
     }

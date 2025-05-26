@@ -1,5 +1,6 @@
 package com.wuyouyu.pathosynmod.entity.effect;
 
+import com.wuyouyu.pathosynmod.client.particle.ParticleFrameData;
 import com.wuyouyu.pathosynmod.item.custom.HealingStaffItem;
 import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
 
@@ -140,26 +141,21 @@ public class HealingBeamEntity extends Entity {
                         target.getZ()
                 );
 
-                RandomSource random = serverLevel.getRandom();
-                int particleCount = 2 + random.nextInt(3);
-                double radius = 0.4;
-
-                for (int i = 0; i < particleCount; i++) {
-                    double angle = i * (2 * Math.PI / particleCount);
+                int particleCount = ParticleFrameData.HEALING_FRAMES.length;
+                for (int frameIndex = 0; frameIndex < particleCount; frameIndex++) {
+                    double angle = frameIndex * (2 * Math.PI / particleCount);
+                    double radius = 0.4;
                     double offsetX = radius * Math.cos(angle);
                     double offsetZ = radius * Math.sin(angle);
-                    double offsetY = (random.nextDouble() - 0.5) * 0.2;  // 小范围起伏
+                    double offsetY = 0.1 * (serverLevel.getRandom().nextDouble() - 0.5);
 
-                    int[] wandFrames = new int[]{3, 7, 14};
-                    ParticleUtil.spawnRuneRing(
-                            player,
-                            wandFrames.length,
-                            1.2, 0.1,
+                    serverLevel.sendParticles(
                             ModParticles.PATHOSYN_SYMBOLS.get(),
-                            0.2f, 0.95f, 0.35f,
-                            wandFrames,
-                            0.36f
-
+                            center.x + offsetX, center.y + offsetY, center.z + offsetZ,
+                            1,
+                            frameIndex, // dx = 帧索引
+                            0, 0,
+                            0
                     );
                 }
 
