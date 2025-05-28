@@ -1,12 +1,10 @@
 package com.wuyouyu.pathosynmod.entity.effect;
 
-import com.wuyouyu.pathosynmod.client.particle.ParticleFrameData;
 import com.wuyouyu.pathosynmod.item.custom.HealingStaffItem;
 import com.wuyouyu.pathosynmod.registry.ModComponentTypes;
 
 
 import com.wuyouyu.pathosynmod.registry.ModParticles;
-import com.wuyouyu.pathosynmod.util.ParticleUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
@@ -141,21 +139,22 @@ public class HealingBeamEntity extends Entity {
                         target.getZ()
                 );
 
-                int particleCount = ParticleFrameData.HEALING_FRAMES.length;
-                for (int frameIndex = 0; frameIndex < particleCount; frameIndex++) {
-                    double angle = frameIndex * (2 * Math.PI / particleCount);
-                    double radius = 0.4;
+                RandomSource random = serverLevel.getRandom();
+                int particleCount = 2 + random.nextInt(3);
+                double radius = 0.4;
+
+                for (int i = 0; i < particleCount; i++) {
+                    double angle = i * (2 * Math.PI / particleCount);
                     double offsetX = radius * Math.cos(angle);
                     double offsetZ = radius * Math.sin(angle);
-                    double offsetY = 0.1 * (serverLevel.getRandom().nextDouble() - 0.5);
+                    double offsetY = (random.nextDouble() - 0.5) * 0.2;  // 小范围起伏
 
                     serverLevel.sendParticles(
-                            ModParticles.PATHOSYN_SYMBOLS.get(),
-                            center.x + offsetX, center.y + offsetY, center.z + offsetZ,
-                            1,
-                            frameIndex, // dx = 帧索引
-                            0, 0,
-                            0
+                            ModParticles.HEALING_BEAM.get(),
+                            center.x + offsetX,
+                            center.y + offsetY,
+                            center.z + offsetZ,
+                            1, 0, 0, 0, 0
                     );
                 }
 
